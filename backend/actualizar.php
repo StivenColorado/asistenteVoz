@@ -21,7 +21,7 @@ if (isset($data['caso']) && isset($data['dato']) && isset($data['cedula'])) {
     // Definir la consulta según el caso
     switch ($caso) {
         case 'telefono':
-            $query = "UPDATE clientes SET numero_telefono = ? WHERE numero_documento = ?";
+            $query = "UPDATE cliente SET numero_telefono = ? WHERE numero_documento = ?";
             break;
         case 'correo':
             // Limpiar espacios en el correo
@@ -33,19 +33,30 @@ if (isset($data['caso']) && isset($data['dato']) && isset($data['cedula'])) {
                 exit;
             }
 
-            $query = "UPDATE clientes SET correo_electronico = ? WHERE numero_documento = ?";
+            $query = "UPDATE cliente SET correo_electronico = ? WHERE numero_documento = ?";
             break;
         case 'nombre':
-            $query = "UPDATE clientes SET nombre_completo = ? WHERE numero_documento = ?";
+            $query = "UPDATE cliente SET nombre_completo = ? WHERE numero_documento = ?";
             break;
-        case 'fecha_nacimiento':
-            $query = "UPDATE clientes SET fecha_nacimiento = ? WHERE numero_documento = ?";
+        case 'direccion':
+            $query = "UPDATE cliente SET direccion = ? WHERE numero_documento = ?";
+            break;
+        case 'estado_civil':
+            $query = "UPDATE cliente SET estado_civil = ? WHERE numero_documento = ?";
+            break;
+        case 'genero':
+            $query = "UPDATE cliente SET genero = ? WHERE numero_documento = ?";
+            break;
+        case 'tipo_cuenta':
+            $query = "UPDATE cliente SET tipo_cuenta = ? WHERE numero_documento = ?";
+            break;
+        case 'numero_cuenta':
+            $query = "UPDATE cliente SET numero_cuenta = ? WHERE numero_documento = ?";
             break;
         default:
             echo json_encode(["mensaje" => "Caso no válido."]);
             exit;
     }
-
 
     // Preparar la consulta
     $stmt = $conn->prepare($query);
@@ -69,3 +80,4 @@ if (isset($data['caso']) && isset($data['dato']) && isset($data['cedula'])) {
 
 // Cerrar la conexión
 $conn->close();
+?>

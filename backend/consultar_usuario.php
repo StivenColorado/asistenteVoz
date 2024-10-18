@@ -21,7 +21,7 @@ if (isset($data['cedula'])) {
     }
 
     // Preparar la consulta
-    $stmt = $conn->prepare("SELECT * FROM clientes WHERE numero_documento = ?");
+    $stmt = $conn->prepare("SELECT * FROM cliente WHERE numero_documento = ?");
     $stmt->bind_param("s", $cedula); // Vincular el parámetro
     $stmt->execute(); // Ejecutar la consulta
     $result = $stmt->get_result(); // Obtener el resultado

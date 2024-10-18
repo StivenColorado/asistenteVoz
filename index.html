@@ -4,115 +4,103 @@
 <head>
     <meta charset="UTF-8">
     <title>Asistente de Kiosko con Voz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 min-h-screen p-0 m-0 overflow-hidden">
+    <!-- Contenedor principal con efecto de gradiente metálico -->
+    <div
+        class="h-screen w-screen flex flex-col items-center justify-between p-6 bg-gradient-to-b from-gray-800 to-gray-900">
+        <!-- Panel de chat con efecto metálico -->
+        <div class="w-full h-3/4 bg-gray-800 rounded-2xl border-2 border-gray-600 shadow-xl overflow-hidden relative">
+            <!-- Efecto de brillo superior -->
+            <div
+                class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 opacity-50">
+            </div>
+
+            <!-- Contenido del chat -->
+            <div id="chat" class="h-full overflow-y-auto p-4 space-y-4 text-xl">
+                <!-- Los mensajes se insertarán aquí dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Panel de estado con efecto neón -->
+        <div id="status" class="w-full text-center py-2 px-4 text-white font-mono text-2xl font-bold">
+            Esperando...
+        </div>
+        <!-- Visualizador de audio con efecto futurista -->
+        <div id="audio-bars"
+            class="w-full h-24 bg-gray-800 rounded-lg flex items-end justify-center gap-1 p-2 border border-gray-700">
+            <!-- Las barras de audio se generarán dinámicamente -->
+        </div>
+        <!-- Controles con efecto neón -->
+        <div id="controls" class="w-full flex justify-center gap-4 mb-4">
+            <button id="startBtn"
+                class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg shadow-blue-500/50 text-xl font-bold">
+                Iniciar Asistente
+            </button>
+            <button id="stopBtn"
+                class="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg shadow-red-500/50 text-xl font-bold">
+                Detener
+            </button>
+        </div>
+    </div>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-
-        #chat {
-            width: 400px;
-            height: 500px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            overflow-y: auto;
-            padding: 15px;
-            background: white;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .user,
-        .bot {
-            margin: 8px 0;
-            padding: 10px;
-            border-radius: 8px;
-            max-width: 80%;
-            word-wrap: break-word;
-        }
-
-        .user {
-            background: #e3f2fd;
-            margin-left: auto;
-        }
-
-        .bot {
-            background: #fff3e0;
-            margin-right: auto;
-        }
-
-        #status {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            font-size: 0.9em;
-        }
-
-        #controls {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-        }
-
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            background: #2196f3;
-            color: white;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        button:hover {
-            background: #1976d2;
-        }
-
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .listening {
-            background: #4caf50;
-        }
-
-        .error {
-            background: #f44336;
-        }
-
         #audio-bars {
-            width: 400px;
-            height: 50px;
+            width:100vw;
+            height: 20vh;
             margin: 10px 0;
             display: flex;
             align-items: flex-end;
             gap: 2px;
             padding: 5px;
-            background: #eee;
+            background: transparent;
             border-radius: 5px;
         }
 
         .audio-bar {
-            width: 6px;
+            width: 100%;
+            height: 100%;
             background: #4caf50;
             transition: height 0.1s ease;
         }
-    </style>
-</head>
 
-<body>
-    <div id="chat"></div>
-    <div id="status">Esperando...</div>
-    <div id="audio-bars"></div>
-    <div id="controls">
-        <button id="startBtn">Iniciar Asistente</button>
-        <button id="stopBtn">Detener</button>
-    </div>
+        /* Estilos para los mensajes del chat */
+        .user {
+            @apply bg-blue-900 text-white p-4 rounded-lg ml-auto max-w-[80%] shadow-lg text-xl;
+        }
+
+        .bot {
+            @apply bg-gray-700 text-white p-4 rounded-lg mr-auto max-w-[80%] shadow-lg text-xl;
+        }
+
+        /* Nuevo estilo para el cuadro de diálogo del bot centrado */
+        .bot-message {
+            @apply bg-gray-700 text-white p-4 rounded-lg mx-auto max-w-[80%] text-center shadow-lg text-xl;
+        }
+
+        /* Estilo para la barra de audio */
+        .audio-bar {
+            @apply bg-cyan-400 w-2 rounded-t transition-all duration-100;
+            min-height: 2px;
+        }
+
+        /* Personalización del scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            @apply bg-gray-800;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            @apply bg-gray-600 rounded-full;
+        }
+    </style>
+
     <script type="module" src="./frontend/js/index.js"></script>
 </body>
+
 </html>

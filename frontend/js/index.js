@@ -73,7 +73,8 @@ class KioskAssistant {
     }
 
     async consultarUsuario(cedula) {
-        let cleanedCedula = cedula.trim()
+        let cleanedCedula = cedula.trim();
+        
         console.log(`cedula recibida ${cleanedCedula}`);
         try {
             const response = await fetch('http://localhost/asistenteVoz/backend/consultar_usuario.php', {
@@ -174,16 +175,31 @@ class KioskAssistant {
     updateStatus(message, className = '') {
         const status = document.getElementById('status');
         status.textContent = message;
-        status.className = className;
+
+        // Agregar estilos predeterminados
+        status.className = `w-full text-center py-2 px-4 text-white font-mono text-2xl font-bold ${className}`;
     }
 
     appendMessage(message, sender) {
         const chat = document.getElementById('chat');
         const messageDiv = document.createElement('div');
         messageDiv.className = sender;
-        messageDiv.textContent = message;
+        messageDiv.classList.add("text-white", "text-2xl");
+
+        // Crea un efecto de escritura
+        messageDiv.textContent = ''; // Comienza vacío
         chat.appendChild(messageDiv);
-        chat.scrollTop = chat.scrollHeight;
+
+        let index = 0;
+        const typingInterval = setInterval(() => {
+            if (index < message.length) {
+                messageDiv.textContent += message.charAt(index);
+                index++;
+            } else {
+                clearInterval(typingInterval); // Detiene el intervalo cuando termina
+                chat.scrollTop = chat.scrollHeight; // Desplaza hacia abajo
+            }
+        }, 50); // Cambia este valor para ajustar la velocidad de escritura
     }
 
     async speak(text) {
@@ -210,7 +226,6 @@ class KioskAssistant {
         this.appendMessage(response, 'bot');
         await this.speak(response);
     }
-
 
     async processInput(input) {
         if (this.isGreeting(input)) {
@@ -243,7 +258,7 @@ class KioskAssistant {
             case 3:
                 if (input.includes('actualizar') || input.includes('1')) {
                     this.step = 4;
-                    return "¿Qué dato deseas actualizar?\n- Nombre\n- Teléfono\n- Correo\n- Fecha de nacimiento";
+                    return "¿Qué dato deseas actualizar?\n- Nombre\n- Teléfono\n- Correo\n- Dirección\n- Estado civil\n- Género\n- Tipo de cuenta\n- Número de cuenta";
                 }
                 if (input.includes('certificado') || input.includes('2')) {
                     return `Generando certificado para ${this.userData.fullData.nombre_completo}...\nTu certificado estará listo en unos momentos.\n¿Necesitas algo más?`;
@@ -255,78 +270,20 @@ class KioskAssistant {
                 if (input.includes('nombre')) updateCase = 'nombre';
                 else if (input.includes('telefono') || input.includes('teléfono')) updateCase = 'telefono';
                 else if (input.includes('correo')) updateCase = 'correo';
-                else if (input.includes('fecha')) updateCase = 'fecha_nacimiento';
+                else if (input.includes('direccion') || input.includes('dirección')) updateCase = 'direccion';
+                else if (input.includes('estado civil') || input.includes('estado_civil')) updateCase = 'estado_civil';
+                else if (input.includes('género')) updateCase = 'genero';
+                else if (input.includes('tipo de cuenta')) updateCase = 'tipo_cuenta';
+                else if (input.includes('número de cuenta')) updateCase = 'numero_cuenta';
 
                 if (updateCase) {
                     this.userData.updateCase = updateCase;
                     this.step = 5;
-
-                    // Manejo especial para actualización de correo
-                    if (updateCase === 'correo') {
-                        return `Para actualizar tu correo electrónico, te sugiero que lo tengas escrito a mano si no lo recuerdas completamente. Por favor, deletrea tu correo electrónico letra por letra, incluyendo símbolos como arroba (@) y punto (.). ¿Estás listo para deletrear tu correo?`;
-                    }
-
-                    // Para fecha de nacimiento
-                    if (updateCase === 'fecha_nacimiento') {
-                        return `Por favor, dime el día de nacimiento:`;
-                    }
-
-                    // Para otros casos (nombre o teléfono)
                     return `Por favor, dime el nuevo ${updateCase}:`;
                 }
-                return "No entendí qué dato deseas actualizar. Por favor, especifica: nombre, teléfono, correo o fecha de nacimiento.";
+                return "No entendí qué dato deseas actualizar. Por favor, especifica: nombre, teléfono, correo, dirección, estado civil, género, tipo de cuenta o número de cuenta.";
 
             case 5:
-                // Si estamos actualizando el correo
-                if (this.userData.updateCase === 'correo') {
-                    const resultado = await this.actualizarDato(
-                        this.userData.updateCase,
-                        input,
-                        this.userData.id
-                    );
-                    this.step = 3;
-
-                    if (resultado && resultado.mensaje.includes("correctamente")) {
-                        return `Correo electrónico actualizado correctamente. ¿Qué más deseas hacer?\n1. Actualizar otros datos\n2. Generar certificados`;
-                    }
-                    return "Hubo un error al actualizar el correo. ¿Qué deseas hacer?\n1. Intentar de nuevo\n2. Generar certificados";
-                }
-
-                // Si estamos actualizando la fecha de nacimiento
-                if (this.userData.updateCase === 'fecha_nacimiento') {
-                    if (!this.userData.birthdayDay) {
-                        this.userData.birthdayDay = input;
-                        return `Gracias. Ahora, por favor, dime el mes de nacimiento (en números):`;
-                    }
-
-                    if (!this.userData.birthdayMonth) {
-                        this.userData.birthdayMonth = input;
-                        return `Perfecto. Finalmente, por favor, dime el año de nacimiento:`;
-                    }
-
-                    if (this.userData.birthdayMonth && !this.userData.birthdayYear) {
-                        this.userData.birthdayYear = input;
-                        const formattedDate = `${this.userData.birthdayYear}-${this.userData.birthdayMonth}-${this.userData.birthdayDay}`;
-                        const resultado = await this.actualizarDato(
-                            this.userData.updateCase,
-                            formattedDate,
-                            this.userData.id
-                        );
-                        this.step = 3;
-
-                        // Reiniciamos los datos de cumpleaños
-                        this.userData.birthdayDay = null;
-                        this.userData.birthdayMonth = null;
-                        this.userData.birthdayYear = null;
-
-                        if (resultado && resultado.mensaje.includes("correctamente")) {
-                            return `Fecha de nacimiento actualizada correctamente. ¿Qué más deseas hacer?\n1. Actualizar otros datos\n2. Generar certificados`;
-                        }
-                        return "Hubo un error al actualizar la fecha. ¿Qué deseas hacer?\n1. Intentar de nuevo\n2. Generar certificados";
-                    }
-                }
-
-                // Para otros casos (nombre o teléfono)
                 const resultado = await this.actualizarDato(
                     this.userData.updateCase,
                     input,
@@ -366,6 +323,7 @@ class KioskAssistant {
         setTimeout(() => this.stop(), 2000);
         return `¡Hasta luego${name}! Que tengas un excelente día.`;
     }
+
     cleanID(id) {
         // Elimina espacios, puntos, comas y cualquier otro carácter que no sea número
         return id.replace(/[^\d]/g, '');
@@ -375,11 +333,11 @@ class KioskAssistant {
         // Primero limpiamos la cédula
         const cleanedID = this.cleanID(id);
         // Verificamos que tenga entre 8 y 10 dígitos
-        return /^\d{8,10}$/.test(cleanedID);
+        return /^\d{8,12}$/.test(cleanedID);
     }
 
     welcomeMessage() {
-        const initialMessage = "¡Bienvenido al asistente virtual! En que puedo ayudarte hoy?";
+        const initialMessage = "¡Bienvenido al asistente virtual! ¿En qué puedo ayudarte hoy?";
         this.appendMessage(initialMessage, 'bot');
         this.speak(initialMessage);
     }
