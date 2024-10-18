@@ -1,4 +1,6 @@
 #comando para descomprimir la libreria para generar el certificado
 unzip TCPD.zip
+#comando para descomprimir la libreria para enviar correo
+unzip PHPMailer.zip
 #comando para dar permisos en backend para crear carpeta de certificados
 chmod -R 0777 backend
