@@ -96,7 +96,7 @@ if ($result->num_rows > 0) {
     $mail->Host = 'smtp.gmail.com';
     $mail->SMTPAuth = true;
     $mail->Username = 'stivenchoo@gmail.com';
-    $mail->Password = '';
+    $mail->Password = 'pumd yiuq tltf ifvu';
     $mail->SMTPSecure = 'tls';
     $mail->Port = 587;
 
