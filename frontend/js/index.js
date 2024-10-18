@@ -72,9 +72,41 @@ class KioskAssistant {
         };
     }
 
+    async generateCertificate(cedula) {
+        try {
+            const response = await fetch('http://localhost/asistenteVoz/backend/generar_certificado.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ cedula: cedula })
+            });
+
+            // Since the PHP script forces a download, we'll check if the response is successful
+            if (response.ok) {
+                return {
+                    success: true,
+                    message: 'Certificado generado exitosamente.'
+                };
+            } else {
+                const errorData = await response.json();
+                return {
+                    success: false,
+                    message: errorData.error || 'Error al generar el certificado.'
+                };
+            }
+        } catch (error) {
+            console.error('Error al generar certificado:', error);
+            return {
+                success: false,
+                message: 'Error al conectar con el servidor.'
+            };
+        }
+    }
+
     async consultarUsuario(cedula) {
         let cleanedCedula = cedula.trim();
-        
+
         console.log(`cedula recibida ${cleanedCedula}`);
         try {
             const response = await fetch('http://localhost/asistenteVoz/backend/consultar_usuario.php', {
@@ -261,7 +293,14 @@ class KioskAssistant {
                     return "¿Qué dato deseas actualizar?\n- Nombre\n- Teléfono\n- Correo\n- Dirección\n- Estado civil\n- Género\n- Tipo de cuenta\n- Número de cuenta";
                 }
                 if (input.includes('certificado') || input.includes('2')) {
-                    return `Generando certificado para ${this.userData.fullData.nombre_completo}...\nTu certificado estará listo en unos momentos.\n¿Necesitas algo más?`;
+                    console.log(this.userData);
+                    console.log(this.userData.numero_documento);
+                    const result = await this.generateCertificate(this.userData.numero_documento);
+                    if (result.success) {
+                        return `${result.message}\nTu certificado se está descargando automáticamente.\n¿Necesitas algo más?\n1. Actualizar datos\n2. Generar otro certificado`;
+                    } else {
+                        return `${result.message}\n¿Qué deseas hacer?\n1. Actualizar datos\n2. Intentar generar el certificado nuevamente`;
+                    }
                 }
                 return "No entendí tu selección. Por favor, di '1' para actualizar datos o '2' para generar certificados.";
 
