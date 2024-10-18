@@ -2,6 +2,7 @@ class KioskAssistant {
     constructor() {
         this.recognition = null;
         this.synthesis = window.speechSynthesis;
+        this.selectedVoice = null;  // Variable para almacenar la voz seleccionada
         this.step = 0;
         this.userData = {
             name: '',
@@ -11,9 +12,24 @@ class KioskAssistant {
         };
         this.isListening = false;
         this.isProcessing = false;
+        
+        if (this.synthesis.onvoiceschanged !== undefined) {
+            this.synthesis.onvoiceschanged = () => {
+                this.loadVoices();
+            };
+        }
+
         this.setupSpeechRecognition();
         this.setupUI();
         this.setupAudioVisualization();
+    }
+
+    loadVoices() {
+        const voices = this.synthesis.getVoices();
+        console.log('Voces disponibles:', voices.map(v => `${v.name} (${v.lang})`));
+        
+        // Asignar una voz predeterminada, por ejemplo, la primera voz en español
+        this.selectedVoice = voices.find(voice => voice.lang.includes('es')) || voices[0];
     }
 
     setupSpeechRecognition() {
@@ -82,7 +98,6 @@ class KioskAssistant {
                 body: JSON.stringify({ cedula: cedula })
             });
 
-            // Since the PHP script forces a download, we'll check if the response is successful
             if (response.ok) {
                 return {
                     success: true,
@@ -176,7 +191,11 @@ class KioskAssistant {
         this.autoRestart = true;
         this.startListening();
         this.welcomeMessage();
+    
+        // Cambiar la voz a una específica, por ejemplo, "Google español"
+        this.changeVoice("Google español");  // Asegúrate de que esta voz esté disponible
     }
+    
 
     stop() {
         this.autoRestart = false;
@@ -207,8 +226,6 @@ class KioskAssistant {
     updateStatus(message, className = '') {
         const status = document.getElementById('status');
         status.textContent = message;
-
-        // Agregar estilos predeterminados
         status.className = `w-full text-center py-2 px-4 text-white font-mono text-2xl font-bold ${className}`;
     }
 
@@ -218,8 +235,7 @@ class KioskAssistant {
         messageDiv.className = sender;
         messageDiv.classList.add("text-white", "text-2xl");
 
-        // Crea un efecto de escritura
-        messageDiv.textContent = ''; // Comienza vacío
+        messageDiv.textContent = '';
         chat.appendChild(messageDiv);
 
         let index = 0;
@@ -228,24 +244,47 @@ class KioskAssistant {
                 messageDiv.textContent += message.charAt(index);
                 index++;
             } else {
-                clearInterval(typingInterval); // Detiene el intervalo cuando termina
-                chat.scrollTop = chat.scrollHeight; // Desplaza hacia abajo
+                clearInterval(typingInterval);
+                chat.scrollTop = chat.scrollHeight;
             }
-        }, 50); // Cambia este valor para ajustar la velocidad de escritura
+        }, 50);
     }
+    // Método para cambiar la voz con una variable
+    changeVoice(voiceName) {
+        const voices = this.synthesis.getVoices();
+        const newVoice = voices.find(voice => voice.name === voiceName);
+        if (newVoice) {
+            this.selectedVoice = newVoice;
+            console.log(`Voz cambiada a: ${newVoice.name} (${newVoice.lang})`);
+        } else {
+            console.log(`Voz no encontrada: ${voiceName}`);
+        }
+    }
+
 
     async speak(text) {
         return new Promise((resolve) => {
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'es-ES';
+
+            // Usar la voz seleccionada
+            if (this.selectedVoice) {
+                utterance.voice = this.selectedVoice;
+            }
+
+            utterance.lang = this.selectedVoice ? this.selectedVoice.lang : 'es-ES';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
             utterance.onend = resolve;
+            this.synthesis.cancel();
             this.synthesis.speak(utterance);
         });
     }
 
     async handleUserInput(input) {
-        const normalizedInput = input.toLowerCase().trim(); // Normaliza la entrada
-        this.appendMessage(normalizedInput, 'user'); // Guarda la entrada normalizada
+        const normalizedInput = input.toLowerCase().trim();
+        this.appendMessage(normalizedInput, 'user');
 
         if (this.isFarewell(normalizedInput)) {
             const response = await this.handleFarewell();
@@ -254,7 +293,7 @@ class KioskAssistant {
             return;
         }
 
-        let response = await this.processInput(normalizedInput); // Procesa la entrada normalizada
+        let response = await this.processInput(normalizedInput);
         this.appendMessage(response, 'bot');
         await this.speak(response);
     }
@@ -294,8 +333,8 @@ class KioskAssistant {
                 }
                 if (input.includes('certificado') || input.includes('2')) {
                     console.log(this.userData);
-                    console.log(this.userData.numero_documento);
-                    const result = await this.generateCertificate(this.userData.numero_documento);
+                    console.log(this.userData.id);
+                    const result = await this.generateCertificate(this.userData.id);
                     if (result.success) {
                         return `${result.message}\nTu certificado se está descargando automáticamente.\n¿Necesitas algo más?\n1. Actualizar datos\n2. Generar otro certificado`;
                     } else {
@@ -364,14 +403,11 @@ class KioskAssistant {
     }
 
     cleanID(id) {
-        // Elimina espacios, puntos, comas y cualquier otro carácter que no sea número
         return id.replace(/[^\d]/g, '');
     }
 
     validateID(id) {
-        // Primero limpiamos la cédula
         const cleanedID = this.cleanID(id);
-        // Verificamos que tenga entre 8 y 10 dígitos
         return /^\d{8,12}$/.test(cleanedID);
     }
 
