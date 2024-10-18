@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost
--- Tiempo de generación: 17-10-2024 a las 17:18:40
+-- Tiempo de generación: 18-10-2024 a las 20:57:56
 -- Versión del servidor: 10.4.28-MariaDB
 -- Versión de PHP: 8.2.4
 
@@ -24,55 +24,56 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `clientes`
+-- Estructura de tabla para la tabla `cliente`
 --
 
-CREATE TABLE `clientes` (
+CREATE TABLE `cliente` (
   `id` int(11) NOT NULL,
-  `nombre_completo` varchar(100) NOT NULL,
-  `numero_documento` varchar(20) NOT NULL,
-  `correo_electronico` varchar(100) NOT NULL,
-  `numero_telefono` varchar(15) DEFAULT NULL,
-  `fecha_nacimiento` date DEFAULT NULL
+  `nombre_completo` varchar(255) DEFAULT NULL,
+  `numero_documento` varchar(20) DEFAULT NULL,
+  `fecha_nacimiento` date DEFAULT NULL,
+  `direccion` varchar(255) DEFAULT NULL,
+  `numero_telefono` varchar(20) DEFAULT NULL,
+  `estado_civil` varchar(20) DEFAULT NULL,
+  `genero` varchar(10) DEFAULT NULL,
+  `correo_electronico` varchar(255) DEFAULT NULL,
+  `departamento` varchar(50) DEFAULT NULL,
+  `ciudad` varchar(50) DEFAULT NULL,
+  `tipo_de_cuenta` varchar(20) DEFAULT NULL,
+  `numero_cuenta` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `clientes`
+-- Volcado de datos para la tabla `cliente`
 --
 
-INSERT INTO `clientes` (`id`, `nombre_completo`, `numero_documento`, `correo_electronico`, `numero_telefono`, `fecha_nacimiento`) VALUES
-(1, 'Juan Pérez', '12345678', 'juan.perez@example.com', '555-0101', '1985-05-20'),
-(2, 'María López', '87654321', 'maria.lopez@example.com', '555-0102', '1990-03-15'),
-(3, 'Carlos García', '23456789', 'carlos.garcia@example.com', '555-0103', '1988-11-10'),
-(4, 'Ana Martínez', '34567890', 'ana.martinez@example.com', '555-0104', '1992-07-22'),
-(5, 'Luis Rodríguez', '45678901', 'luis.rodriguez@example.com', '555-0105', '1980-01-30'),
-(6, 'Sofía Fernández', '56789012', 'sofia.fernandez@example.com', '555-0106', '1987-09-05'),
-(7, 'Pedro Sánchez', '67890123', 'pedro.sanchez@example.com', '555-0107', '1995-12-12'),
-(8, 'Laura Gómez', '78901234', 'laura.gomez@example.com', '555-0108', '1993-02-28'),
-(9, 'Javier Torres', '89012345', 'javier.torres@example.com', '555-0109', '1989-04-16'),
-(10, 'Claudia Ruiz', '90123456', 'claudia.ruiz@example.com', '555-0110', '1991-10-01');
+INSERT INTO `cliente` (`id`, `nombre_completo`, `numero_documento`, `fecha_nacimiento`, `direccion`, `numero_telefono`, `estado_civil`, `genero`, `correo_electronico`, `departamento`, `ciudad`, `tipo_de_cuenta`, `numero_cuenta`) VALUES
+(1, 'Camila Benitez Franco', '1114540070', '2003-12-02', 'Cra 16A # 23-11', '3165735746', 'Soltera', 'Femenino', 'camilabenitez851@gmail.com', 'Valle del Cauca', 'Palmira', 'Ahorro', '1234562996'),
+(2, 'Elizabeth Chapuesgal Muñoz', '1006288078', '2001-09-12', 'Diag 67 #31a-39', '3172445380', 'Soltera', 'Femenino', 'elizachap@outlook.com', 'Valle del Cauca', 'Palmira', 'Ahorro', '1234568749'),
+(3, 'Sofia Vergara Castañeda', '1114541185', '2004-12-25', 'calle 22a #16a-155', '3186702037', 'Soltera', 'Femenino', 'vergarasofia012@gmail.com', 'Valle del Cauca', 'Palmira', 'Ahorro', '1234564758'),
+(4, 'Jessica Joana Barrera Balanta', '1114827330', '1992-06-25', 'Cra 2 # 6-52', '3153660485', 'Casada', 'Femenino', 'barrerajj25@gmail.com', 'Valle del Cauca', 'El Cerrito', 'Ahorro', '1234567545'),
+(5, 'Brigite Tatiana Ramirez Valencia', '1127629150', '1999-09-13', 'calle 31#3e-37', '3103756134', 'Soltera', 'Femenino', 'ramirezbrigitte13@gmail.com', 'Valle del Cauca', 'Palmira', 'ahorros', '1234563449');
 
 --
 -- Índices para tablas volcadas
 --
 
 --
--- Indices de la tabla `clientes`
+-- Indices de la tabla `cliente`
 --
-ALTER TABLE `clientes`
+ALTER TABLE `cliente`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `numero_documento` (`numero_documento`),
-  ADD UNIQUE KEY `correo_electronico` (`correo_electronico`);
+  ADD UNIQUE KEY `numero_documento` (`numero_documento`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
 --
 
 --
--- AUTO_INCREMENT de la tabla `clientes`
+-- AUTO_INCREMENT de la tabla `cliente`
 --
-ALTER TABLE `clientes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+ALTER TABLE `cliente`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
