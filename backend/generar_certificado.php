@@ -21,7 +21,6 @@ if (!isset($data['cedula']) || empty($data['cedula'])) {
 
 $cedula = $data['cedula'];
 
-// Modificar la consulta para incluir el correo electrónico
 $stmt = $conn->prepare("SELECT nombre_completo, tipo_de_cuenta, numero_cuenta, correo_electronico FROM cliente WHERE numero_documento = ?");
 $stmt->bind_param('s', $cedula);
 $stmt->execute();
@@ -35,40 +34,49 @@ if ($result->num_rows > 0) {
     $correoElectronico = $user['correo_electronico'];
 
     // Crear el PDF usando TCPDF
-    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
 
     // Eliminar encabezado y pie de página por defecto
     $pdf->setPrintHeader(false);
     $pdf->setPrintFooter(false);
 
-    // Establecer márgenes
-    $pdf->SetMargins(20, 20, 20);
+    // Establecer márgenes reducidos
+    $pdf->SetMargins(15, 15, 15);
+    $pdf->SetAutoPageBreak(false, 0);
 
     // Agregar página
     $pdf->AddPage();
 
-    // Colocar la primera imagen (bancasena.png) en la parte superior
-    $pdf->Image(__DIR__ . '/public/bancasena.png', 15, 15, 180);
+    // Rutas correctas para las imágenes basadas en la estructura del proyecto
+    $bancasenaPath = dirname(__FILE__) . '/backend/public/bancasena.png';
+    $picPath = dirname(__FILE__) . '/backend/public/pic.jpg';
 
-    // Agregar el contenido del certificado
+    // Primera imagen en la parte superior (ajustada)
+    if (file_exists($bancasenaPath)) {
+        $pdf->Image($bancasenaPath, 15, 15, 180, 40);
+    }
+
+    // Contenido centrado en la página
+    $pdf->SetY(70); // Posición Y después de la primera imagen
+
     $pdf->SetFont('helvetica', 'B', 16);
     $pdf->Cell(0, 10, 'Banco BancaSena', 0, 1, 'C');
 
     $fechaHora = date('Y-m-d H:i:s');
     $pdf->SetFont('helvetica', '', 12);
     $pdf->MultiCell(0, 10, "Te informa que has generado un certificado por medio de nuestro asistente con fecha y hora: $fechaHora", 0, 'C', 0, 1, '', '', true);
-    $pdf->Ln(10);
 
     $pdf->MultiCell(0, 10, "Señores a quienes pueda interesar:", 0, 'C', 0, 1, '', '', true);
-    $pdf->Ln(10);
 
     $pdf->MultiCell(0, 10, "BancaSena certifica a el/la señor@ $nombreCompleto, con número de documento: $cedula, que tiene una cuenta de tipo '$tipoCuenta' con número '$numeroCuenta'.", 0, 'C', 0, 1, '', '', true);
 
-    // Colocar la segunda imagen (pic.jpg) en la parte inferior
-    $pdf->Image(__DIR__ . '/public/pic.jpg', 15, 180, 180);
+    // Segunda imagen en la parte inferior (ajustada)
+    if (file_exists($picPath)) {
+        $pdf->Image($picPath, 15, 180, 180, 40);
+    }
 
-    $pdf->Ln(20);
-
+    // Pie de página
+    $pdf->SetY(240);
     $pdf->SetFont('helvetica', 'I', 10);
     $pdf->MultiCell(0, 10, "Creado y desarrollado por Sennova - Stiven Colorado - Stivenchoo@gmail.com", 0, 'C', 0, 1, '', '', true);
 
@@ -82,19 +90,20 @@ if ($result->num_rows > 0) {
     $pdf->Output($filePath, 'F');
 
     // Enviar correo electrónico
-    $mail = new PHPMailer\PHPMailer\PHPMailer(); // Cambia aquí para el namespace
+    $mail = new PHPMailer\PHPMailer\PHPMailer();
+    $mail->CharSet = 'UTF-8';
     $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com';  // Configura tu servidor SMTP
+    $mail->Host = 'smtp.gmail.com';
     $mail->SMTPAuth = true;
-    $mail->Username = 'stivenchoo@gmail.com';  // Tu correo
-    $mail->Password = 'pumd yiuq tltf ifvu';  // Tu contraseña de aplicación
+    $mail->Username = 'stivenchoo@gmail.com';
+    $mail->Password = '';
     $mail->SMTPSecure = 'tls';
     $mail->Port = 587;
 
     $mail->setFrom('no-reply@bancasena.com', 'BancaSena');
     $mail->addAddress($correoElectronico, $nombreCompleto);
     $mail->Subject = 'Generación de certificado bancaSena';
-    $mail->Body = "Es un placer servirte {$nombreCompleto}, aquí tienes tu certificado generado desde el asistente.";
+    $mail->Body = "Es un placer servirte " . $nombreCompleto . ", aquí tienes tu certificado generado desde el asistente.";
     $mail->addAttachment($filePath);
 
     if (!$mail->send()) {
