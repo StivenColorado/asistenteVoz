@@ -48,7 +48,7 @@ if (isset($data['caso']) && isset($data['dato']) && isset($data['cedula'])) {
             $query = "UPDATE cliente SET genero = ? WHERE numero_documento = ?";
             break;
         case 'tipo_cuenta':
-            $query = "UPDATE cliente SET tipo_cuenta = ? WHERE numero_documento = ?";
+            $query = "UPDATE cliente SET tipo_de_cuenta = ? WHERE numero_documento = ?";
             break;
         case 'numero_cuenta':
             $query = "UPDATE cliente SET numero_cuenta = ? WHERE numero_documento = ?";
