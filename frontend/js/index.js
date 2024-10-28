@@ -151,7 +151,24 @@ class KioskAssistant {
                     cedula: cedula
                 })
             });
-            return await response.json();
+            
+            const result = await response.json();
+            console.log('Respuesta de actualización:', result);
+            
+            // Si la respuesta tiene un status o success, úsalo
+            if (result.status || result.success) {
+                return result;
+            }
+            
+            // Si no hay indicador de éxito/fallo pero hay datos, asumimos éxito
+            if (result) {
+                return {
+                    success: true,
+                    message: 'Dato actualizado correctamente'
+                };
+            }
+            
+            return null;
         } catch (error) {
             console.error('Error al actualizar dato:', error);
             return null;
@@ -449,29 +466,36 @@ class KioskAssistant {
                     display: "Por favor, selecciona una opción válida:\n1. Nombre\n2. Teléfono\n3. Dirección\n4. Estado Civil\n5. Género\n6. Finalizar proceso",
                     speak: "No entendí qué dato deseas actualizar. Por favor, selecciona una de las opciones disponibles."
                 };
-
             case 5:
                 if (!this.userData.updateCase) {
                     this.step = 4;
                     return "Ha ocurrido un error. Por favor, selecciona nuevamente qué dato deseas actualizar.";
                 }
 
-                const updateResult = await this.actualizarDato(
-                    this.userData.updateCase,
-                    normalizedInput,
-                    this.userData.id
-                );
+                try {
+                    const updateResult = await this.actualizarDato(
+                        this.userData.updateCase,
+                        normalizedInput,
+                        this.userData.id
+                    );
 
-                if (updateResult && updateResult.success) {
-                    this.step = 4;
-                    return {
-                        display: `${updateResult.message}\n\n¿Deseas actualizar otro dato?\n- Nombre\n- Teléfono\n- Dirección\n- Estado civil\n- Género\n- Finalizar proceso`,
-                        speak: `${updateResult.message}. ¿Deseas actualizar otro dato?`
-                    };
-                } else {
-                    return "Hubo un error al actualizar el dato. Por favor, intenta nuevamente.";
+                    // Actualizar los datos locales después de una actualización exitosa
+                    if (updateResult) {
+                        // Actualizar el userData.fullData con el nuevo valor
+                        this.userData.fullData[this.userData.updateCase] = normalizedInput;
+
+                        this.step = 4; // Volver al menú de actualización
+                        return {
+                            display: `Dato actualizado correctamente.\n\n¿Deseas actualizar otro dato?\n- Nombre\n- Teléfono\n- Dirección\n- Estado civil\n- Género\n- 6. Finalizar proceso`,
+                            speak: "El dato ha sido actualizado correctamente. ¿Deseas actualizar otro dato?"
+                        };
+                    } else {
+                        return "No se pudo actualizar el dato. Por favor, intenta nuevamente.";
+                    }
+                } catch (error) {
+                    console.error('Error en la actualización:', error);
+                    return "Hubo un error al procesar la actualización. Por favor, intenta nuevamente.";
                 }
-
             default:
                 return "Lo siento, no pude procesar tu solicitud. ¿Podrías intentarlo de nuevo?";
         }
