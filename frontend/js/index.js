@@ -5,6 +5,8 @@ class KioskAssistant {
         this.synthesis = window.speechSynthesis;
         this.selectedVoice = null;
         this.step = 0;
+        this.lastUpdateAttempt = null;
+        this.pendingUpdate = null;
         this.userData = {
             name: '',
             id: '',
@@ -227,44 +229,101 @@ class KioskAssistant {
     appendMessage(message, sender, action = '') {
         const chat = document.getElementById('chat');
         const messageDiv = document.createElement('div');
-    
-        // Nuevas clases de Tailwind para los mensajes
+
+        // Clases base para los mensajes
         const baseClasses = "w-full max-w-[80%] rounded-lg p-4 mb-4 shadow-lg text-lg";
-    
+
         if (sender === 'user') {
             messageDiv.className = `${baseClasses} ml-auto bg-green-600 text-white`;
         } else {
             messageDiv.className = `${baseClasses} mr-auto bg-gray-700 text-white`;
         }
-    
+
+        // Función auxiliar para crear listas a partir del texto
+        const createListFromText = (text) => {
+            const listContainer = document.createElement('div');
+            listContainer.className = "space-y-2";
+
+            // Divide el texto en líneas y procesa cada una
+            const lines = text.split('\n').filter(line => line.trim());
+
+            lines.forEach(line => {
+                const listItem = document.createElement('div');
+
+                // Verifica si la línea comienza con un número o un guion
+                if (line.match(/^\d+\./) || line.match(/^-/)) {
+                    listItem.className = "flex items-center space-x-2 py-1 hover:bg-gray-600 rounded-md px-2 transition-colors duration-200";
+
+                    // Si es una opción numerada, aplica estilos especiales
+                    if (line.match(/^\d+\./)) {
+                        const [number, ...rest] = line.split('.');
+                        const numberSpan = document.createElement('span');
+                        numberSpan.className = "flex-shrink-0 w-6 h-6 flex items-center justify-center bg-blue-500 rounded-full text-white font-bold text-sm";
+                        numberSpan.textContent = number;
+
+                        const textSpan = document.createElement('span');
+                        textSpan.className = "flex-grow";
+                        textSpan.textContent = rest.join('.').trim();
+
+                        listItem.appendChild(numberSpan);
+                        listItem.appendChild(textSpan);
+                    } else {
+                        // Si es una opción con guion, usa un punto como marcador
+                        const bullet = document.createElement('span');
+                        bullet.className = "flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2";
+
+                        const textSpan = document.createElement('span');
+                        textSpan.className = "flex-grow";
+                        textSpan.textContent = line.replace('-', '').trim();
+
+                        listItem.appendChild(bullet);
+                        listItem.appendChild(textSpan);
+                    }
+                } else {
+                    // Si es texto normal, solo añade el contenido
+                    listItem.className = "text-white";
+                    listItem.textContent = line;
+                }
+
+                listContainer.appendChild(listItem);
+            });
+
+            return listContainer;
+        };
+
+        // Maneja diferentes tipos de contenido
         if (action === 'consultar_datos' && message.includes("Nombre Completo:")) {
+            // Mantiene el formato existente para los datos del usuario
             const listContainer = document.createElement('div');
             listContainer.className = "bg-gray-800 rounded-lg p-6 space-y-3";
-    
+
             const lines = message.trim().split('\n');
             lines.forEach(line => {
                 if (line.trim()) {
                     const [label, value] = line.split(':').map(str => str.trim());
-    
+
                     const itemDiv = document.createElement('div');
                     itemDiv.className = "flex flex-col sm:flex-row sm:justify-between border-b border-gray-700 pb-2";
-    
+
                     const labelSpan = document.createElement('span');
                     labelSpan.className = "font-bold text-blue-400";
                     labelSpan.textContent = label;
-    
+
                     const valueSpan = document.createElement('span');
                     valueSpan.className = "text-white";
                     valueSpan.textContent = value;
-    
+
                     itemDiv.appendChild(labelSpan);
                     itemDiv.appendChild(valueSpan);
                     listContainer.appendChild(itemDiv);
                 }
             });
             messageDiv.appendChild(listContainer);
+        } else if (message.includes('\n') && (message.includes('1.') || message.includes('-'))) {
+            // Si el mensaje contiene saltos de línea y números o guiones, créalo como lista
+            messageDiv.appendChild(createListFromText(message));
         } else {
-            // Creación del mensaje estándar con efecto de escritura
+            // Mensaje normal con efecto de escritura
             messageDiv.textContent = '';
             let index = 0;
             const typingInterval = setInterval(() => {
@@ -276,12 +335,10 @@ class KioskAssistant {
                 }
             }, 50);
         }
-    
+
         chat.appendChild(messageDiv);
         chat.scrollTop = chat.scrollHeight;
     }
-    
-
 
     changeVoice(voiceName) {
         const voices = this.synthesis.getVoices();
@@ -344,7 +401,9 @@ class KioskAssistant {
 
 
     async processInput(input) {
-        if (this.isGreeting(input)) {
+        const normalizedInput = this.normalizeText(input.toLowerCase().trim());
+
+        if (this.isGreeting(normalizedInput)) {
             return this.handleGreeting();
         }
 
@@ -356,87 +415,170 @@ class KioskAssistant {
             case 1:
                 const cleanedInput = this.cleanID(input);
                 if (this.validateID(cleanedInput)) {
-                    console.log(`input recibido al recibir cedula ${cleanedInput}`);
-
                     const userData = await this.consultarUsuario(cleanedInput);
-                    console.log(userData);
 
                     if (userData) {
                         this.userData.fullData = userData;
                         this.userData.id = userData.numero_documento;
                         this.step = 3;
-                        return `Bienvenido ${userData.nombre_completo}, ¿qué deseas hacer?\n1. Actualizar mis datos\n2. Generar certificados\n3. Consultar mis datos`;
+                        return {
+                            display: "¿Qué deseas hacer?\n1. Actualizar mis datos\n2. Generar certificados\n3. Consultar mis datos",
+                            speak: `Bienvenido ${userData.nombre_completo}, ¿qué deseas hacer? Puedes actualizar tus datos, generar certificados o consultar tus datos.`
+                        };
                     }
                     return "No se encontró el usuario. Por favor, verifica tu número de cédula.";
                 }
                 return "Por favor, proporciona un número de cédula válido (entre 8 y 10 dígitos).";
 
             case 3:
-                if (input.includes('actualizar') || input.includes('1')) {
-                    this.step = 4;
-                    return "¿Qué dato deseas actualizar?\n- Nombre\n- Teléfono\n- Dirección\n- Estado civil\n- Género\n- 4. Finalizar proceso";
-                }
-                if (input.includes('certificado') || input.includes('2')) {
-                    console.log(this.userData);
-                    console.log(this.userData.id);
-                    const result = await this.generateCertificate(this.userData.id);
-                    if (result.success) {
-                        return `${result.message}\nTu certificado se está descargando automáticamente.\n¿Necesitas algo más?\n1. Actualizar datos\n2. Generar otro certificado\n3. Consultar mis datos`;
-                    } else {
-                        return `${result.message}\n¿Qué deseas hacer?\n1. Actualizar datos\n2. Intentar generar el certificado nuevamente\n3. Consultar mis datos`;
-                    }
-                }
-                if (input.includes('consultar') || input.includes('3')) {
-                    const userData = this.userData.fullData;
-                    const datosFormateados = `
-                    Nombre Completo: ${userData.nombre_completo}
-                    Número de Documento: ${userData.numero_documento}
-                    Fecha de Nacimiento: ${userData.fecha_nacimiento}
-                    Dirección: ${userData.direccion}
-                    Número de Teléfono: ${userData.numero_telefono}
-                    Estado Civil: ${userData.estado_civil}
-                    Género: ${userData.genero}
-                    Correo Electrónico: ${userData.correo_electronico}
-                    Departamento: ${userData.departamento}
-                    Ciudad: ${userData.ciudad}`;
-
-                    const menuOpciones = `¿Qué más deseas hacer?\n1. Actualizar datos\n2. Generar certificados\n3. Consultar mis datos nuevamente`;
-
-                    this.appendMessage(menuOpciones, 'bot', 'consultar_datos');
-                    setTimeout(() => {
-                        this.speak(menuOpciones);
-                    }, 5000);
-
-                    return {
-                        display: datosFormateados,
-                        speak: "Estos son tus datos:"
-                    };
-                }
-                return "No entendí tu selección. Por favor, di '1' para actualizar datos, '2' para generar certificados o '3' para consultar tus datos.";
+                return await this.handleMainMenuChoice(normalizedInput);
 
             case 4:
-                if (input.includes('finalizar') || input.includes('4')) {
-                    await this.handleFarewell();
-                    this.stop();
-                    return;
+                if (this.isFinalizarComando(normalizedInput)) {
+                    return await this.handleFarewell();
                 }
-                let updateCase = '';
-                if (input.includes('nombre')) updateCase = 'nombre';
-                else if (input.includes('telefono') || input.includes('teléfono')) updateCase = 'telefono';
-                else if (input.includes('direccion') || input.includes('dirección')) updateCase = 'direccion';
-                else if (input.includes('estado civil') || input.includes('estado_civil')) updateCase = 'estado_civil';
-                else if (input.includes('género')) updateCase = 'genero';
 
+                const updateCase = this.determineUpdateCase(normalizedInput);
                 if (updateCase) {
                     this.userData.updateCase = updateCase;
                     this.step = 5;
-                    return `Por favor, dime el nuevo ${updateCase}:`;
+                    return `Por favor, dime el nuevo ${this.getFieldDisplayName(updateCase)}:`;
                 }
-                return "No entendí qué dato deseas actualizar. Por favor, especifica: nombre, teléfono, dirección, estado civil o género, o di '4' para finalizar.";
-        
+
+                return {
+                    display: "Por favor, selecciona una opción válida:\n1. Nombre\n2. Teléfono\n3. Dirección\n4. Estado Civil\n5. Género\n6. Finalizar proceso",
+                    speak: "No entendí qué dato deseas actualizar. Por favor, selecciona una de las opciones disponibles."
+                };
+
+            case 5:
+                if (!this.userData.updateCase) {
+                    this.step = 4;
+                    return "Ha ocurrido un error. Por favor, selecciona nuevamente qué dato deseas actualizar.";
+                }
+
+                const updateResult = await this.actualizarDato(
+                    this.userData.updateCase,
+                    normalizedInput,
+                    this.userData.id
+                );
+
+                if (updateResult && updateResult.success) {
+                    this.step = 4;
+                    return {
+                        display: `${updateResult.message}\n\n¿Deseas actualizar otro dato?\n- Nombre\n- Teléfono\n- Dirección\n- Estado civil\n- Género\n- Finalizar proceso`,
+                        speak: `${updateResult.message}. ¿Deseas actualizar otro dato?`
+                    };
+                } else {
+                    return "Hubo un error al actualizar el dato. Por favor, intenta nuevamente.";
+                }
+
             default:
-                return "No entendí tu solicitud. ¿Podrías repetirla?";
+                return "Lo siento, no pude procesar tu solicitud. ¿Podrías intentarlo de nuevo?";
         }
+    }
+
+
+    async handleMainMenuChoice(input) {
+        if (input.includes('actualizar') || input.includes('1')) {
+            this.step = 4;
+            return "¿Qué dato deseas actualizar?\n- Nombre\n- Teléfono\n- Dirección\n- Estado civil\n- Género\n- 6. Finalizar proceso";
+        }
+
+        if (input.includes('certificado') || input.includes('2')) {
+            const result = await this.generateCertificate(this.userData.id);
+            if (result.success) {
+                return `${result.message}\nTu certificado se está descargando automáticamente.\n¿Necesitas algo más?\n1. Actualizar datos\n2. Generar otro certificado\n3. Consultar mis datos`;
+            }
+            return `${result.message}\n¿Qué deseas hacer?\n1. Actualizar datos\n2. Intentar generar el certificado nuevamente\n3. Consultar mis datos`;
+        }
+
+        if (input.includes('consultar') || input.includes('3')) {
+            return this.formatUserData();
+        }
+
+        return "Por favor, selecciona una opción válida: 1 para actualizar datos, 2 para certificados, o 3 para consultar datos.";
+    }
+
+    formatUserData() {
+        const userData = this.userData.fullData;
+        const datosFormateados = `
+        Nombre Completo: ${userData.nombre_completo}
+        Número de Documento: ${userData.numero_documento}
+        Fecha de Nacimiento: ${userData.fecha_nacimiento}
+        Dirección: ${userData.direccion}
+        Número de Teléfono: ${userData.numero_telefono}
+        Estado Civil: ${userData.estado_civil}
+        Género: ${userData.genero}
+        Correo Electrónico: ${userData.correo_electronico}
+        Departamento: ${userData.departamento}
+        Ciudad: ${userData.ciudad}`;
+
+        const menuOpciones = "¿Qué más deseas hacer?\n1. Actualizar datos\n2. Generar certificados\n3. Consultar mis datos nuevamente";
+
+        return {
+            display: datosFormateados,
+            speak: "Estos son tus datos. " + menuOpciones
+        };
+    }
+
+    determineUpdateCase(input) {
+        const normalizedInput = this.normalizeText(input.toLowerCase());
+
+        const updateMap = {
+            nombre: ['nombre', '1', 'primero', 'uno'],
+            telefono: ['telefono', 'teléfono', 'celular', '2', 'segundo', 'dos'],
+            direccion: ['direccion', 'direccíon', 'direccín', 'direccin', '3', 'tercero', 'tres'],
+            estado_civil: ['estado civil', 'estadocivil', 'estado', '4', 'cuarto', 'cuatro'],
+            genero: ['genero', 'género', '5', 'quinto', 'cinco']
+        };
+
+        for (const [key, variants] of Object.entries(updateMap)) {
+            if (variants.some(variant => normalizedInput.includes(variant))) {
+                return key;
+            }
+        }
+        return null;
+    }
+
+    normalizeText(text) {
+        return text
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim();
+    }
+    determineUpdateCase(input) {
+        const updateMap = {
+            nombre: ['nombre', '1', 'primero', 'uno'],
+            telefono: ['telefono', 'teléfono', 'celular', '2', 'segundo', 'dos'],
+            direccion: ['direccion', 'direccíon', 'direccín', 'direccin', '3', 'tercero', 'tres'],
+            estado_civil: ['estado civil', 'estadocivil', 'estado', '4', 'cuarto', 'cuatro'],
+            genero: ['genero', 'género', '5', 'quinto', 'cinco']
+        };
+
+        for (const [key, variants] of Object.entries(updateMap)) {
+            if (variants.some(variant => input.includes(variant))) {
+                return key;
+            }
+        }
+        return null;
+    }
+    // Función para verificar si es comando de finalización
+    isFinalizarComando(input) {
+        const finalizarVariants = ['finalizar', 'terminar', 'salir', '6', 'sexto', 'seis', 'fin', 'gracias', 'chao', 'adios'];
+        const normalizedInput = this.normalizeText(input.toLowerCase());
+        return finalizarVariants.some(variant => normalizedInput.includes(variant));
+    }
+    // Función para obtener el nombre de visualización del campo
+    getFieldDisplayName(updateCase) {
+        const displayNames = {
+            'nombre': 'nombre',
+            'telefono': 'número de teléfono',
+            'direccion': 'dirección',
+            'estado_civil': 'estado civil',
+            'genero': 'género'
+        };
+        return displayNames[updateCase] || updateCase;
     }
 
     isGreeting(input) {
