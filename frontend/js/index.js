@@ -1,8 +1,9 @@
+const url = "http://localhost/";
 class KioskAssistant {
     constructor() {
         this.recognition = null;
         this.synthesis = window.speechSynthesis;
-        this.selectedVoice = null;  // Variable para almacenar la voz seleccionada
+        this.selectedVoice = null;
         this.step = 0;
         this.userData = {
             name: '',
@@ -12,7 +13,7 @@ class KioskAssistant {
         };
         this.isListening = false;
         this.isProcessing = false;
-        
+
         if (this.synthesis.onvoiceschanged !== undefined) {
             this.synthesis.onvoiceschanged = () => {
                 this.loadVoices();
@@ -27,8 +28,6 @@ class KioskAssistant {
     loadVoices() {
         const voices = this.synthesis.getVoices();
         console.log('Voces disponibles:', voices.map(v => `${v.name} (${v.lang})`));
-        
-        // Asignar una voz predeterminada, por ejemplo, la primera voz en español
         this.selectedVoice = voices.find(voice => voice.lang.includes('es')) || voices[0];
     }
 
@@ -90,7 +89,7 @@ class KioskAssistant {
 
     async generateCertificate(cedula) {
         try {
-            const response = await fetch('http://localhost/asistenteVoz/backend/generar_certificado.php', {
+            const response = await fetch(`${url}/asistenteVoz/backend/generar_certificado.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -120,11 +119,10 @@ class KioskAssistant {
     }
 
     async consultarUsuario(cedula) {
-        let cleanedCedula = cedula.trim();
-
-        console.log(`cedula recibida ${cleanedCedula}`);
+        let cleanedCedula = this.cleanID(cedula);
+        console.log(`Cedula limpia para enviar: ${cleanedCedula}`);
         try {
-            const response = await fetch('http://localhost/asistenteVoz/backend/consultar_usuario.php', {
+            const response = await fetch(`${url}/asistenteVoz/backend/consultar_usuario.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -140,7 +138,7 @@ class KioskAssistant {
 
     async actualizarDato(caso, dato, cedula) {
         try {
-            const response = await fetch('http://localhost/asistenteVoz/backend/actualizar.php', {
+            const response = await fetch(`${url}/asistenteVoz/backend/actualizar.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -191,11 +189,8 @@ class KioskAssistant {
         this.autoRestart = true;
         this.startListening();
         this.welcomeMessage();
-    
-        // Cambiar la voz a una específica, por ejemplo, "Google español"
-        this.changeVoice("Google español");  // Asegúrate de que esta voz esté disponible
+        this.changeVoice("Google español");
     }
-    
 
     stop() {
         this.autoRestart = false;
@@ -229,27 +224,65 @@ class KioskAssistant {
         status.className = `w-full text-center py-2 px-4 text-white font-mono text-2xl font-bold ${className}`;
     }
 
-    appendMessage(message, sender) {
+    appendMessage(message, sender, action = '') {
         const chat = document.getElementById('chat');
         const messageDiv = document.createElement('div');
-        messageDiv.className = sender;
-        messageDiv.classList.add("text-white", "text-2xl");
-
-        messageDiv.textContent = '';
+    
+        // Nuevas clases de Tailwind para los mensajes
+        const baseClasses = "w-full max-w-[80%] rounded-lg p-4 mb-4 shadow-lg text-lg";
+    
+        if (sender === 'user') {
+            messageDiv.className = `${baseClasses} ml-auto bg-green-600 text-white`;
+        } else {
+            messageDiv.className = `${baseClasses} mr-auto bg-gray-700 text-white`;
+        }
+    
+        if (action === 'consultar_datos' && message.includes("Nombre Completo:")) {
+            const listContainer = document.createElement('div');
+            listContainer.className = "bg-gray-800 rounded-lg p-6 space-y-3";
+    
+            const lines = message.trim().split('\n');
+            lines.forEach(line => {
+                if (line.trim()) {
+                    const [label, value] = line.split(':').map(str => str.trim());
+    
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = "flex flex-col sm:flex-row sm:justify-between border-b border-gray-700 pb-2";
+    
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = "font-bold text-blue-400";
+                    labelSpan.textContent = label;
+    
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = "text-white";
+                    valueSpan.textContent = value;
+    
+                    itemDiv.appendChild(labelSpan);
+                    itemDiv.appendChild(valueSpan);
+                    listContainer.appendChild(itemDiv);
+                }
+            });
+            messageDiv.appendChild(listContainer);
+        } else {
+            // Creación del mensaje estándar con efecto de escritura
+            messageDiv.textContent = '';
+            let index = 0;
+            const typingInterval = setInterval(() => {
+                if (index < message.length) {
+                    messageDiv.textContent += message.charAt(index);
+                    index++;
+                } else {
+                    clearInterval(typingInterval);
+                }
+            }, 50);
+        }
+    
         chat.appendChild(messageDiv);
-
-        let index = 0;
-        const typingInterval = setInterval(() => {
-            if (index < message.length) {
-                messageDiv.textContent += message.charAt(index);
-                index++;
-            } else {
-                clearInterval(typingInterval);
-                chat.scrollTop = chat.scrollHeight;
-            }
-        }, 50);
+        chat.scrollTop = chat.scrollHeight;
     }
-    // Método para cambiar la voz con una variable
+    
+
+
     changeVoice(voiceName) {
         const voices = this.synthesis.getVoices();
         const newVoice = voices.find(voice => voice.name === voiceName);
@@ -261,12 +294,10 @@ class KioskAssistant {
         }
     }
 
-
     async speak(text) {
         return new Promise((resolve) => {
             const utterance = new SpeechSynthesisUtterance(text);
 
-            // Usar la voz seleccionada
             if (this.selectedVoice) {
                 utterance.voice = this.selectedVoice;
             }
@@ -283,7 +314,7 @@ class KioskAssistant {
     }
 
     async handleUserInput(input) {
-        const normalizedInput = input.toLowerCase().trim();
+        const normalizedInput = this.cleanInput(input.toLowerCase().trim()); // Limpia y normaliza la entrada
         this.appendMessage(normalizedInput, 'user');
 
         if (this.isFarewell(normalizedInput)) {
@@ -294,9 +325,23 @@ class KioskAssistant {
         }
 
         let response = await this.processInput(normalizedInput);
-        this.appendMessage(response, 'bot');
-        await this.speak(response);
+
+        // Si el resultado es un objeto (que contiene display y speak)
+        if (typeof response === 'object') {
+            // Si se trata de consultar datos, pasamos 'consultar_datos' como acción
+            if (response.speak === "Estos son tus datos:") {
+                this.appendMessage(response.display, 'bot', 'consultar_datos');
+            } else {
+                this.appendMessage(response.display, 'bot');
+            }
+            await this.speak(response.speak);
+        } else {
+            // Si no es un objeto, simplemente mostramos el mensaje normal
+            this.appendMessage(response, 'bot');
+            await this.speak(response);
+        }
     }
+
 
     async processInput(input) {
         if (this.isGreeting(input)) {
@@ -320,7 +365,7 @@ class KioskAssistant {
                         this.userData.fullData = userData;
                         this.userData.id = userData.numero_documento;
                         this.step = 3;
-                        return `Bienvenido ${userData.nombre_completo}, ¿qué deseas hacer?\n1. Actualizar mis datos\n2. Generar certificados`;
+                        return `Bienvenido ${userData.nombre_completo}, ¿qué deseas hacer?\n1. Actualizar mis datos\n2. Generar certificados\n3. Consultar mis datos`;
                     }
                     return "No se encontró el usuario. Por favor, verifica tu número de cédula.";
                 }
@@ -329,51 +374,66 @@ class KioskAssistant {
             case 3:
                 if (input.includes('actualizar') || input.includes('1')) {
                     this.step = 4;
-                    return "¿Qué dato deseas actualizar?\n- Nombre\n- Teléfono\n- Correo\n- Dirección\n- Estado civil\n- Género\n- Tipo de cuenta\n- Número de cuenta";
+                    return "¿Qué dato deseas actualizar?\n- Nombre\n- Teléfono\n- Dirección\n- Estado civil\n- Género\n- 4. Finalizar proceso";
                 }
                 if (input.includes('certificado') || input.includes('2')) {
                     console.log(this.userData);
                     console.log(this.userData.id);
                     const result = await this.generateCertificate(this.userData.id);
                     if (result.success) {
-                        return `${result.message}\nTu certificado se está descargando automáticamente.\n¿Necesitas algo más?\n1. Actualizar datos\n2. Generar otro certificado`;
+                        return `${result.message}\nTu certificado se está descargando automáticamente.\n¿Necesitas algo más?\n1. Actualizar datos\n2. Generar otro certificado\n3. Consultar mis datos`;
                     } else {
-                        return `${result.message}\n¿Qué deseas hacer?\n1. Actualizar datos\n2. Intentar generar el certificado nuevamente`;
+                        return `${result.message}\n¿Qué deseas hacer?\n1. Actualizar datos\n2. Intentar generar el certificado nuevamente\n3. Consultar mis datos`;
                     }
                 }
-                return "No entendí tu selección. Por favor, di '1' para actualizar datos o '2' para generar certificados.";
+                if (input.includes('consultar') || input.includes('3')) {
+                    const userData = this.userData.fullData;
+                    const datosFormateados = `
+                    Nombre Completo: ${userData.nombre_completo}
+                    Número de Documento: ${userData.numero_documento}
+                    Fecha de Nacimiento: ${userData.fecha_nacimiento}
+                    Dirección: ${userData.direccion}
+                    Número de Teléfono: ${userData.numero_telefono}
+                    Estado Civil: ${userData.estado_civil}
+                    Género: ${userData.genero}
+                    Correo Electrónico: ${userData.correo_electronico}
+                    Departamento: ${userData.departamento}
+                    Ciudad: ${userData.ciudad}`;
+
+                    const menuOpciones = `¿Qué más deseas hacer?\n1. Actualizar datos\n2. Generar certificados\n3. Consultar mis datos nuevamente`;
+
+                    this.appendMessage(menuOpciones, 'bot', 'consultar_datos');
+                    setTimeout(() => {
+                        this.speak(menuOpciones);
+                    }, 5000);
+
+                    return {
+                        display: datosFormateados,
+                        speak: "Estos son tus datos:"
+                    };
+                }
+                return "No entendí tu selección. Por favor, di '1' para actualizar datos, '2' para generar certificados o '3' para consultar tus datos.";
 
             case 4:
+                if (input.includes('finalizar') || input.includes('4')) {
+                    await this.handleFarewell();
+                    this.stop();
+                    return;
+                }
                 let updateCase = '';
                 if (input.includes('nombre')) updateCase = 'nombre';
                 else if (input.includes('telefono') || input.includes('teléfono')) updateCase = 'telefono';
-                else if (input.includes('correo')) updateCase = 'correo';
                 else if (input.includes('direccion') || input.includes('dirección')) updateCase = 'direccion';
                 else if (input.includes('estado civil') || input.includes('estado_civil')) updateCase = 'estado_civil';
                 else if (input.includes('género')) updateCase = 'genero';
-                else if (input.includes('tipo de cuenta')) updateCase = 'tipo_cuenta';
-                else if (input.includes('número de cuenta')) updateCase = 'numero_cuenta';
 
                 if (updateCase) {
                     this.userData.updateCase = updateCase;
                     this.step = 5;
                     return `Por favor, dime el nuevo ${updateCase}:`;
                 }
-                return "No entendí qué dato deseas actualizar. Por favor, especifica: nombre, teléfono, correo, dirección, estado civil, género, tipo de cuenta o número de cuenta.";
-
-            case 5:
-                const resultado = await this.actualizarDato(
-                    this.userData.updateCase,
-                    input,
-                    this.userData.id
-                );
-                this.step = 3;
-
-                if (resultado && resultado.mensaje.includes("correctamente")) {
-                    return `Dato actualizado correctamente. ¿Qué más deseas hacer?\n1. Actualizar otros datos\n2. Generar certificados`;
-                }
-                return "Hubo un error al actualizar el dato. ¿Qué deseas hacer?\n1. Intentar de nuevo\n2. Generar certificados";
-
+                return "No entendí qué dato deseas actualizar. Por favor, especifica: nombre, teléfono, dirección, estado civil o género, o di '4' para finalizar.";
+        
             default:
                 return "No entendí tu solicitud. ¿Podrías repetirla?";
         }
@@ -388,7 +448,6 @@ class KioskAssistant {
         const farewells = ['adiós', 'chao', 'hasta luego', 'nos vemos', 'gracias'];
         return farewells.some(farewell => input.includes(farewell));
     }
-
     handleGreeting() {
         if (this.userData.fullData) {
             return `¡Hola de nuevo ${this.userData.fullData.nombre_completo}! ¿En qué puedo ayudarte?`;
@@ -403,7 +462,12 @@ class KioskAssistant {
     }
 
     cleanID(id) {
-        return id.replace(/[^\d]/g, '');
+        return id.replace(/\D/g, ''); // Elimina cualquier carácter que no sea dígito
+    }
+
+    // Función adicional para limpiar entrada en general (nombres, direcciones, etc.)
+    cleanInput(input) {
+        return input.replace(/[^a-zA-Z0-9\s]/g, '').trim(); // Solo mantiene letras, números y espacios
     }
 
     validateID(id) {

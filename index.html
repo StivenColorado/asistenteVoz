@@ -3,44 +3,48 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistente de Kiosko con Voz</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-gray-900 min-h-screen p-0 m-0 overflow-hidden">
-    <!-- Contenedor principal con efecto de gradiente metálico -->
     <div
-        class="h-screen w-screen flex flex-col items-center justify-between p-6 bg-gradient-to-b from-gray-800 to-gray-900">
+        class="min-h-screen w-full flex flex-col items-center justify-between p-2 sm:p-6 bg-gradient-to-b from-gray-800 to-gray-900">
         <!-- Panel de chat con efecto metálico -->
-        <div class="w-full h-3/4 bg-gray-800 rounded-2xl border-2 border-gray-600 shadow-xl overflow-hidden relative">
+        <div
+            class="w-full h-[50vh] sm:h-3/4 bg-gray-800 rounded-2xl border-2 border-gray-600 shadow-xl overflow-hidden relative">
             <!-- Efecto de brillo superior -->
             <div
                 class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 opacity-50">
             </div>
 
             <!-- Contenido del chat -->
-            <div id="chat" class="h-full overflow-y-auto p-4 space-y-4 text-xl">
+            <div id="chat" class="h-full overflow-y-auto p-2 sm:p-4 space-y-4 text-base sm:text-xl">
                 <!-- Los mensajes se insertarán aquí dinámicamente -->
             </div>
         </div>
 
         <!-- Panel de estado con efecto neón -->
-        <div id="status" class="w-full text-center py-2 px-4 text-white font-mono text-2xl font-bold">
+        <div id="status" class="w-full text-center py-2 px-4 text-white font-mono text-lg sm:text-2xl font-bold">
             Esperando...
         </div>
+
         <!-- Visualizador de audio con efecto futurista -->
         <div id="audio-bars"
-            class="w-full h-24 bg-gray-800 rounded-lg flex items-end justify-center gap-1 p-2 border border-gray-700">
+            class="w-full h-16 sm:h-24 bg-gray-800 rounded-lg flex items-end justify-center gap-1 p-2 border border-gray-700">
             <!-- Las barras de audio se generarán dinámicamente -->
         </div>
+
         <!-- Controles con efecto neón -->
-        <div id="controls" class="w-full flex justify-center gap-4 mb-4">
+        <div id="controls"
+            class="w-full flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 mb-4 h-[20vh] p-4">
             <button id="startBtn"
-                class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg shadow-blue-500/50 text-xl font-bold">
+                class="min-w-[50vw] h-20 sm:h-16 sm:w-auto px-4 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg shadow-blue-500/50 text-base sm:text-xl font-bold flex items-center justify-center">
                 Iniciar Asistente
             </button>
             <button id="stopBtn"
-                class="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg shadow-red-500/50 text-xl font-bold">
+                class="min-w-[50vw] h-20 sm:h-16 sm:w-auto px-4 sm:px-8 py-3 sm:py-4 bg-red-600 hover:bg-red-700 text-white rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg shadow-red-500/50 text-base sm:text-xl font-bold flex items-center justify-center">
                 Detener
             </button>
         </div>
@@ -48,8 +52,8 @@
 
     <style>
         #audio-bars {
-            width:100vw;
-            height: 20vh;
+            width: 100%;
+            height: 15vh;
             margin: 10px 0;
             display: flex;
             align-items: flex-end;
@@ -68,27 +72,26 @@
 
         /* Estilos para los mensajes del chat */
         .user {
-            @apply bg-blue-900 text-white p-4 rounded-lg ml-auto max-w-[80%] shadow-lg text-xl;
+            @apply bg-blue-900 text-white p-3 sm:p-4 rounded-lg ml-auto max-w-[90%] sm:max-w-[80%] shadow-lg text-sm sm:text-xl;
         }
 
         .bot {
-            @apply bg-gray-700 text-white p-4 rounded-lg mr-auto max-w-[80%] shadow-lg text-xl;
+            @apply bg-gray-700 text-white p-3 sm:p-4 rounded-lg mr-auto max-w-[90%] sm:max-w-[80%] shadow-lg text-sm sm:text-xl;
         }
 
-        /* Nuevo estilo para el cuadro de diálogo del bot centrado */
         .bot-message {
-            @apply bg-gray-700 text-white p-4 rounded-lg mx-auto max-w-[80%] text-center shadow-lg text-xl;
+            @apply bg-gray-700 text-white p-3 sm:p-4 rounded-lg mx-auto max-w-[90%] sm:max-w-[80%] text-center shadow-lg text-sm sm:text-xl;
         }
 
-        /* Estilo para la barra de audio */
         .audio-bar {
-            @apply bg-cyan-400 w-2 rounded-t transition-all duration-100;
+            @apply bg-cyan-400 w-1 sm:w-2 rounded-t transition-all duration-100;
             min-height: 2px;
         }
 
         /* Personalización del scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 4px;
+            @apply sm:w-8;
         }
 
         ::-webkit-scrollbar-track {
@@ -98,6 +101,39 @@
         ::-webkit-scrollbar-thumb {
             @apply bg-gray-600 rounded-full;
         }
+
+        /* Prevenir zoom en iOS */
+        @supports (-webkit-touch-callout: none) {
+
+            input,
+            select,
+            textarea {
+                font-size: 16px;
+            }
+        }
+
+        #chat::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #chat::-webkit-scrollbar-track {
+        background: rgba(75, 85, 99, 0.2);
+        border-radius: 4px;
+    }
+
+    #chat::-webkit-scrollbar-thumb {
+        background: rgba(75, 85, 99, 0.6);
+        border-radius: 4px;
+    }
+
+    #chat::-webkit-scrollbar-thumb:hover {
+        background: rgba(75, 85, 99, 0.8);
+    }
+
+    #chat {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(75, 85, 99, 0.6) rgba(75, 85, 99, 0.2);
+    }
     </style>
 
     <script type="module" src="./frontend/js/index.js"></script>
