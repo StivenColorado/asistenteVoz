@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost
--- Tiempo de generación: 18-10-2024 a las 20:57:56
+-- Tiempo de generación: 21-10-2024 a las 14:38:11
 -- Versión del servidor: 10.4.28-MariaDB
 -- Versión de PHP: 8.2.4
 
@@ -51,8 +51,8 @@ INSERT INTO `cliente` (`id`, `nombre_completo`, `numero_documento`, `fecha_nacim
 (1, 'Camila Benitez Franco', '1114540070', '2003-12-02', 'Cra 16A # 23-11', '3165735746', 'Soltera', 'Femenino', 'camilabenitez851@gmail.com', 'Valle del Cauca', 'Palmira', 'Ahorro', '1234562996'),
 (2, 'Elizabeth Chapuesgal Muñoz', '1006288078', '2001-09-12', 'Diag 67 #31a-39', '3172445380', 'Soltera', 'Femenino', 'elizachap@outlook.com', 'Valle del Cauca', 'Palmira', 'Ahorro', '1234568749'),
 (3, 'Sofia Vergara Castañeda', '1114541185', '2004-12-25', 'calle 22a #16a-155', '3186702037', 'Soltera', 'Femenino', 'vergarasofia012@gmail.com', 'Valle del Cauca', 'Palmira', 'Ahorro', '1234564758'),
-(4, 'Jessica Joana Barrera Balanta', '1114827330', '1992-06-25', 'Cra 2 # 6-52', '3153660485', 'Casada', 'Femenino', 'barrerajj25@gmail.com', 'Valle del Cauca', 'El Cerrito', 'Ahorro', '1234567545'),
-(5, 'Brigite Tatiana Ramirez Valencia', '1127629150', '1999-09-13', 'calle 31#3e-37', '3103756134', 'Soltera', 'Femenino', 'ramirezbrigitte13@gmail.com', 'Valle del Cauca', 'Palmira', 'ahorros', '1234563449');
+(4, 'Jessica Joana Barrera Balanta', '1114827330', '1992-06-25', 'Cra 2 # 6-52', '3153660485', 'soltera', 'Femenino', 'barrerajj25@gmail.com', 'Valle del Cauca', 'El Cerrito', 'Ahorro', '1234567545'),
+(5, 'Brigite Tatiana Ramirez Valencia', '1127629150', '1999-09-13', 'calle 31#3e-37', '3103756134', 'soltera', 'Femenino', 'ramirezbrigitte13@gmail.com', 'Valle del Cauca', 'Palmira', 'ahorros', '1234563449');
 
 --
 -- Índices para tablas volcadas
@@ -73,7 +73,7 @@ ALTER TABLE `cliente`
 -- AUTO_INCREMENT de la tabla `cliente`
 --
 ALTER TABLE `cliente`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
