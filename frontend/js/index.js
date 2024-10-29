@@ -1,9 +1,19 @@
 const url = "http://localhost/";
 class KioskAssistant {
+    static fieldMappings = {
+        nombre: "nombre_completo",
+        telefono: "numero_telefono",
+        direccion: "direccion",
+        "estado civil": "estado_civil",
+        "correo electrónico": "correo_electronico",
+        "fecha de nacimiento": "fecha_nacimiento",
+        genero: "genero",
+        // Añade otros campos que necesites
+    };
     constructor() {
         this.recognition = null;
         this.synthesis = window.speechSynthesis;
-        this.selectedVoice = null;
+        this.selectedVoice = 'Paulina (es-MX)';
         this.step = 0;
         this.lastUpdateAttempt = null;
         this.pendingUpdate = null;
@@ -151,15 +161,15 @@ class KioskAssistant {
                     cedula: cedula
                 })
             });
-            
+
             const result = await response.json();
             console.log('Respuesta de actualización:', result);
-            
+
             // Si la respuesta tiene un status o success, úsalo
             if (result.status || result.success) {
                 return result;
             }
-            
+
             // Si no hay indicador de éxito/fallo pero hay datos, asumimos éxito
             if (result) {
                 return {
@@ -167,7 +177,7 @@ class KioskAssistant {
                     message: 'Dato actualizado correctamente'
                 };
             }
-            
+
             return null;
         } catch (error) {
             console.error('Error al actualizar dato:', error);
@@ -208,7 +218,7 @@ class KioskAssistant {
         this.autoRestart = true;
         this.startListening();
         this.welcomeMessage();
-        this.changeVoice("Google español");
+        this.changeVoice("Paulina");
     }
 
     stop() {
@@ -376,7 +386,7 @@ class KioskAssistant {
                 utterance.voice = this.selectedVoice;
             }
 
-            utterance.lang = this.selectedVoice ? this.selectedVoice.lang : 'es-ES';
+            utterance.lang = this.selectedVoice ? this.selectedVoice.lang : 'Paulina (es-MX)';
             utterance.rate = 1.0;
             utterance.pitch = 1.0;
             utterance.volume = 1.0;
@@ -416,7 +426,6 @@ class KioskAssistant {
         }
     }
 
-
     async processInput(input) {
         const normalizedInput = this.normalizeText(input.toLowerCase().trim());
 
@@ -428,13 +437,15 @@ class KioskAssistant {
             case 0:
                 this.step++;
                 return "Por favor, dime tu número de cédula.";
-
+            //TODO:arreglar
             case 1:
                 const cleanedInput = this.cleanID(input);
                 if (this.validateID(cleanedInput)) {
                     const userData = await this.consultarUsuario(cleanedInput);
+                    console.log(userData);
 
-                    if (userData) {
+                    if (userData.mensaje !== 'Cliente no encontrado.') {
+
                         this.userData.fullData = userData;
                         this.userData.id = userData.numero_documento;
                         this.step = 3;
@@ -442,10 +453,17 @@ class KioskAssistant {
                             display: "¿Qué deseas hacer?\n1. Actualizar mis datos\n2. Generar certificados\n3. Consultar mis datos",
                             speak: `Bienvenido ${userData.nombre_completo}, ¿qué deseas hacer? Puedes actualizar tus datos, generar certificados o consultar tus datos.`
                         };
+                    } else {
+                        // Si el usuario no existe en la DB, mostrar mensaje y detener flujo
+                        this.step = 0; // Reiniciar el paso para solicitar cédula nuevamente
+                        return {
+                            display: "No se encontró el usuario. Por favor, verifica tu número de cédula o intenta registrarte.",
+                            speak: "No se encontró el usuario. Por favor, verifica tu número de cédula o intenta registrarte."
+                        };
                     }
-                    return "No se encontró el usuario. Por favor, verifica tu número de cédula.";
                 }
                 return "Por favor, proporciona un número de cédula válido (entre 8 y 10 dígitos).";
+
 
             case 3:
                 return await this.handleMainMenuChoice(normalizedInput);
@@ -458,35 +476,45 @@ class KioskAssistant {
                 const updateCase = this.determineUpdateCase(normalizedInput);
                 if (updateCase) {
                     this.userData.updateCase = updateCase;
+                    console.log(this.userData);
+                    console.log(updateCase);
+
                     this.step = 5;
-                    return `Por favor, dime el nuevo ${this.getFieldDisplayName(updateCase)}:`;
+                    const actualField = KioskAssistant.fieldMappings[updateCase];
+                    const currentValue = this.userData.fullData[actualField] || 'No disponible';
+                    console.log(`despues de la constante currentValue ${currentValue}`);
+
+                    return {
+                        display: `Tu ${this.getFieldDisplayName(updateCase)} actual es: ${currentValue}\nPor favor, dime el nuevo ${this.getFieldDisplayName(updateCase)}:`,
+                        speak: `Tu ${this.getFieldDisplayName(updateCase)} actual es ${currentValue}. Por favor, dime el nuevo ${this.getFieldDisplayName(updateCase)}`
+                    };
                 }
 
-                return {
-                    display: "Por favor, selecciona una opción válida:\n1. Nombre\n2. Teléfono\n3. Dirección\n4. Estado Civil\n5. Género\n6. Finalizar proceso",
-                    speak: "No entendí qué dato deseas actualizar. Por favor, selecciona una de las opciones disponibles."
-                };
+                return this.showUpdateMenu();
+
             case 5:
                 if (!this.userData.updateCase) {
                     this.step = 4;
                     return "Ha ocurrido un error. Por favor, selecciona nuevamente qué dato deseas actualizar.";
                 }
 
+                const currentField = KioskAssistant.fieldMappings[this.userData.updateCase];
+                const currentValue = this.userData.fullData[currentField];
+                if (currentValue === undefined) {
+                    return "No se pudo encontrar el dato actual. Por favor, selecciona nuevamente qué dato deseas actualizar.";
+                }
                 try {
                     const updateResult = await this.actualizarDato(
-                        this.userData.updateCase,
+                        currentField,
                         normalizedInput,
                         this.userData.id
                     );
-
-                    // Actualizar los datos locales después de una actualización exitosa
                     if (updateResult) {
                         // Actualizar el userData.fullData con el nuevo valor
-                        this.userData.fullData[this.userData.updateCase] = normalizedInput;
-
-                        this.step = 4; // Volver al menú de actualización
+                        this.userData.fullData[currentField] = normalizedInput;
+                        this.step = 4;
                         return {
-                            display: `Dato actualizado correctamente.\n\n¿Deseas actualizar otro dato?\n- Nombre\n- Teléfono\n- Dirección\n- Estado civil\n- Género\n- 6. Finalizar proceso`,
+                            display: "Dato actualizado correctamente.\n" + this.showUpdateMenu().display,
                             speak: "El dato ha sido actualizado correctamente. ¿Deseas actualizar otro dato?"
                         };
                     } else {
@@ -500,12 +528,10 @@ class KioskAssistant {
                 return "Lo siento, no pude procesar tu solicitud. ¿Podrías intentarlo de nuevo?";
         }
     }
-
-
     async handleMainMenuChoice(input) {
         if (input.includes('actualizar') || input.includes('1')) {
             this.step = 4;
-            return "¿Qué dato deseas actualizar?\n- Nombre\n- Teléfono\n- Dirección\n- Estado civil\n- Género\n- 6. Finalizar proceso";
+            return "¿Qué dato deseas actualizar?\n- Nombre\n- Numero celular\n- Dirección\n- Estado civil\n- Género\n- Finalizar proceso";
         }
 
         if (input.includes('certificado') || input.includes('2')) {
@@ -530,7 +556,7 @@ class KioskAssistant {
         Número de Documento: ${userData.numero_documento}
         Fecha de Nacimiento: ${userData.fecha_nacimiento}
         Dirección: ${userData.direccion}
-        Número de Teléfono: ${userData.numero_telefono}
+        Número de celular: ${userData.numero_telefono}
         Estado Civil: ${userData.estado_civil}
         Género: ${userData.genero}
         Correo Electrónico: ${userData.correo_electronico}
@@ -544,16 +570,38 @@ class KioskAssistant {
             speak: "Estos son tus datos. " + menuOpciones
         };
     }
+    showUpdateMenu() {
+        const userData = this.userData.fullData;
+        console.log(userData);
 
+        const menuOptions = "¿Qué dato deseas actualizar?\n\n" +
+            "1. Nombre\n" +
+            "2. Celular\n" +
+            "3. Dirección\n" +
+            "4. Estado Civil\n" +
+            "5. Género\n" +
+            "6. Finalizar proceso\n\n" +
+            "Datos actuales:\n" +
+            `Nombre: ${userData.nombre_completo}\n` +
+            `Celular: ${userData.numero_telefono || 'No disponible'}\n` +
+            `Dirección: ${userData.direccion || 'No disponible'}\n` +
+            `Estado Civil: ${userData.estado_civil || 'No disponible'}\n` +
+            `Género: ${userData.genero || 'No disponible'}`;
+
+        return {
+            display: menuOptions,
+            speak: "¿Qué dato deseas actualizar? Te muestro tus datos actuales en pantalla."
+        };
+    }
     determineUpdateCase(input) {
         const normalizedInput = this.normalizeText(input.toLowerCase());
 
         const updateMap = {
-            nombre: ['nombre', '1', 'primero', 'uno'],
-            telefono: ['telefono', 'teléfono', 'celular', '2', 'segundo', 'dos'],
-            direccion: ['direccion', 'direccíon', 'direccín', 'direccin', '3', 'tercero', 'tres'],
-            estado_civil: ['estado civil', 'estadocivil', 'estado', '4', 'cuarto', 'cuatro'],
-            genero: ['genero', 'género', '5', 'quinto', 'cinco']
+            'nombre_completo': ['nombre', '1', 'primero', 'uno'],
+            'numero_telefono': ['celular', 'número de celular', 'número de celular', '2', 'segundo', 'dos'],
+            'direccion': ['direccion', 'dirección', '3', 'tercero', 'tres'],
+            'estado_civil': ['estado civil', 'estadocivil', 'estado', '4', 'cuarto', 'cuatro'],
+            'genero': ['genero', 'género', '5', 'quinto', 'cinco']
         };
 
         for (const [key, variants] of Object.entries(updateMap)) {
@@ -563,6 +611,7 @@ class KioskAssistant {
         }
         return null;
     }
+
 
     normalizeText(text) {
         return text
@@ -596,8 +645,8 @@ class KioskAssistant {
     // Función para obtener el nombre de visualización del campo
     getFieldDisplayName(updateCase) {
         const displayNames = {
-            'nombre': 'nombre',
-            'telefono': 'número de teléfono',
+            'nombre_completo': 'nombre',
+            'numero_telefono': 'número de celular',
             'direccion': 'dirección',
             'estado_civil': 'estado civil',
             'genero': 'género'
